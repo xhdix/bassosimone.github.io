@@ -168,6 +168,11 @@ const libndt7 = (function () {
       // mlab-ns to find out a suitable hostname if needed.
       const discoverHostname = function (settings, callback) {
         if (settings.hostname !== '') {
+          // Allow the user to specify a simplified hostname.
+          const re = /^mlab[1-9]{1}-[a-z]{3}[0-9]{2}$/
+          if (settings.hostname.match(re)) {
+            settings.hostname = `ndt-iupui-${settings.hostname}.measurement-lab.org`
+          }
           callback(settings)
           return
         }
