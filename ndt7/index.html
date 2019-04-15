@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang='en'>
+<head>
+  <script type='text/javascript' src='libndt7-core.js'></script>
+  <style>
+
+.row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.result {
+  position: relative;
+  align-items: center;
+  justify-content: center;
+  font-size: 1000%;
+  align: center;
+}
+  </style>
+  <meta charset='utf-8'>
+  <title>ndt7 Speed Test</title>
+</head>
+<body>
+  <div>
+    <div id='download' class='result row'>[Download]</div>
+    <div id='upload' class='result row'>[Upload]</div>
+  </div>
+  <script type='text/javascript'>
+    /* jshint esversion: 6, asi: true */
+    /* exported Run */
+    /* globals libndt7 */
+
+    function MaybeHostname() {
+      const url = new URL(window.location.href)
+      return (url.hash !== '') ? url.hash.substring(1) : ''
+    }
+
+    function WithElementIdDo(elementId, callable) {
+      const elem = document.getElementById(elementId)
+      if (elem) {
+        callable(elem)
+      }
+    }
+
+    function UpdateView(elementId, data) {
+      WithElementIdDo(elementId, function (elem) {
+        const speed = 8 * data.app_info.num_bytes / data.elapsed / 1000 / 1000
+        elem.innerHTML = speed.toFixed(3) + ' Mbit/s'
+      })
+    }
+
+    function RunDownload(callback) {
+      let worker = new Worker('libndt7-worker.js')
+      worker.postMessage({
+        key: 'download',
+        value: {
+          hostname: MaybeHostname()
+        },
+      })
+      worker.onmessage = function (ev) {
+        const msg = ev.data
+        if (msg.key === libndt7.events.clientMeasurement) {
+          UpdateView('download', msg.value)
+        } else {
+          console.log('Worker event: ' + msg.key)
+          if (msg.key === libndt7.events.close) {
+            callback()
+          }
+        }
+      }
+    }
+
+    function RunUpload() {
+      let worker = new Worker('libndt7-worker.js')
+      worker.postMessage({
+        key: 'upload',
+        value: {
+          hostname: MaybeHostname()
+        },
+      })
+      worker.onmessage = function (ev) {
+        const msg = ev.data
+        if (msg.key === libndt7.events.clientMeasurement) {
+          UpdateView('upload', msg.value)
+        } else {
+          console.log('Worker event: ' + msg.key)
+        }
+      }
+    }
+
+    RunDownload(function() { RunUpload(); })
+  </script>
+</body>
+</html>
