@@ -30,10 +30,13 @@ const libndt7 = (function () {
 
     // clientMeasurement is a event emitted periodically during a
     // ndt7 download. It represents a measurement performed by the client.
-    clientMeasurement: 'ndt7.measurement.client'
+    clientMeasurement: 'ndt7.measurement.client',
+
+    // selectedServer is emitted once when we've selected a server.
+    selectedServer: 'ndt7.selected_server'
   }
 
-  const version = 0.7
+  const version = 0.8
 
   return {
     // version is the client library version.
@@ -173,6 +176,7 @@ const libndt7 = (function () {
           if (settings.hostname.match(re)) {
             settings.hostname = `ndt-iupui-${settings.hostname}.measurement-lab.org`
           }
+          emit(events.selectedServer, settings.hostname)
           callback(settings)
           return
         }
@@ -189,6 +193,7 @@ const libndt7 = (function () {
               const fqdn = doc[i].fqdn
               if (fqdn.indexOf("-mlab4-") !== -1) {
                 settings.hostname = fqdn
+                emit(events.selectedServer, settings.hostname)
                 callback(settings)
                 return
               }

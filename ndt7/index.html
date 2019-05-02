@@ -3,6 +3,12 @@
 <head>
   <script type='text/javascript' src='libndt7-core.js'></script>
   <style>
+#container{
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
 
 .row {
   display: flex;
@@ -11,22 +17,48 @@
   width: 100%;
 }
 
+.column {
+  margin: 7px;
+}
+
 .result {
   position: relative;
   align-items: center;
   justify-content: center;
-  font-size: 1000%;
+  font-size: 200%;
   align: center;
 }
   </style>
   <meta charset='utf-8'>
-  <title>ndt7 Speed Test</title>
+  <title>ndt7 network performance test</title>
 </head>
 <body>
-  <div>
-    <div id='download' class='result row'>[Download]</div>
-    <div id='upload' class='result row'>[Upload]</div>
+
+  <div id='container'>
+    <div class='result row'>
+      <span class='column'>Server:</span>
+      <span class='column' id='selected-server'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>Download speed:</span>
+      <span class='column' id='download-speed'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>Max bandwidth:</span>
+      <span class='column' id='max-bandwidth'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>Min RTT:</span>
+      <span class='column' id='min-rtt'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>Smoothed RTT:</span>
+      <span class='column' id='smoothed-rtt'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>RTT variance:</span>
+      <span class='column' id='rtt-var'>N/A</span>
+    </div><div class='result row'>
+      <span class='column'>Upload speed:</span>
+      <span class='column' id='upload-speed'>N/A</span>
+    </div>
   </div>
+
   <script type='text/javascript'>
     /* jshint esversion: 6, asi: true */
     /* exported Run */
@@ -44,10 +76,38 @@
       }
     }
 
-    function UpdateView(elementId, data) {
+    function UpdateViewWithSpeed(elementId, data) {
       WithElementIdDo(elementId, function (elem) {
         const speed = 8 * data.app_info.num_bytes / data.elapsed / 1000 / 1000
         elem.innerHTML = speed.toFixed(3) + ' Mbit/s'
+      })
+    }
+
+    function UpdateViewWithDownloadBBRTCPInfo(data) {
+      WithElementIdDo('max-bandwidth', function (elem) {
+        const value = data.bbr_info.max_bandwidth / 1000 / 1000
+        elem.innerHTML = value.toFixed(3) + ' Mbit/s'
+      })
+      WithElementIdDo('min-rtt', function (elem) {
+        const value = data.bbr_info.min_rtt
+        elem.innerHTML = value.toFixed(3) + ' ms'
+      })
+      WithElementIdDo('smoothed-rtt', function (elem) {
+        const value = data.tcp_info.smoothed_rtt
+        elem.innerHTML = value.toFixed(3) + ' ms'
+      })
+      WithElementIdDo('rtt-var', function (elem) {
+        const value = data.tcp_info.rtt_var
+        elem.innerHTML = value.toFixed(3) + ' ms'
+      })
+    }
+
+    function UpdateViewWithServerName(data) {
+      WithElementIdDo('selected-server', function (elem) {
+        console.log(data)
+        data = data.replace(/.measurement-lab.org$/, "")
+        data = data.replace(/^ndt-iupui-/, "")
+        elem.innerHTML = data
       })
     }
 
@@ -62,7 +122,11 @@
       worker.onmessage = function (ev) {
         const msg = ev.data
         if (msg.key === libndt7.events.clientMeasurement) {
-          UpdateView('download', msg.value)
+          UpdateViewWithSpeed('download-speed', msg.value)
+        } else if (msg.key === libndt7.events.serverMeasurement) {
+          UpdateViewWithDownloadBBRTCPInfo(msg.value)
+        } else if (msg.key === libndt7.events.selectedServer) {
+          UpdateViewWithServerName(msg.value)
         } else {
           console.log('Worker event: ' + msg.key)
           if (msg.key === libndt7.events.close) {
@@ -83,7 +147,9 @@
       worker.onmessage = function (ev) {
         const msg = ev.data
         if (msg.key === libndt7.events.clientMeasurement) {
-          UpdateView('upload', msg.value)
+          UpdateViewWithSpeed('upload-speed', msg.value)
+        } else if (msg.key === libndt7.events.selectedServer) {
+          UpdateViewWithServerName(msg.value)
         } else {
           console.log('Worker event: ' + msg.key)
         }
