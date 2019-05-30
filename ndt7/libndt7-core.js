@@ -36,7 +36,7 @@ const libndt7 = (function () {
     selectedServer: 'ndt7.selected_server'
   }
 
-  const version = 0.8
+  const version = 0.9
 
   return {
     // version is the client library version.
@@ -82,14 +82,16 @@ const libndt7 = (function () {
         const socket = new WebSocket(url, 'net.measurementlab.ndt.v7')
         if (subtest === 'download') {
           socket.onopen = function (event) {
-            emit(events.open, null)
+            emit(events.open, socket.url)
           }
         }
         socket.onclose = function (event) {
           emit(events.close, null)
         }
         socket.onerror = function (event) {
-          emit(events.error, null)
+          // TODO(bassosimone): figure out a way of extracting more useful
+          // information from the error that occurred.
+          emit(events.error, "connect_failed")
         }
         return socket
       }
@@ -104,17 +106,22 @@ const libndt7 = (function () {
           if (event.data instanceof Blob) {
             count += event.data.size
           } else {
-            emit(events.serverMeasurement, JSON.parse(event.data))
+            let message = JSON.parse(event.data)
+            message.direction = 'download'
+            message.origin = 'server'
+            emit(events.serverMeasurement, message)
             count += event.data.length
           }
           let t1 = new Date().getTime()
           const every = 250  // millisecond
           if (t1 - tlast > every) {
             emit(events.clientMeasurement, {
-              elapsed: (t1 - t0) / 1000,  // second
               app_info: {
                 num_bytes: count
-              }
+              },
+              direction: 'download',
+              elapsed: (t1 - t0) / 1000,  // second
+              origin: 'client'
             })
             tlast = t1
           }
@@ -126,6 +133,7 @@ const libndt7 = (function () {
         let t1 = new Date().getTime()
         const duration = 10000  // millisecond
         if (t1 - t0 > duration) {
+          socket.close()
           return
         }
         // TODO(bassosimone): refine to ensure this works well across a wide
@@ -138,10 +146,12 @@ const libndt7 = (function () {
         const every = 250  // millisecond
         if (t1 - tlast > every) {
           emit(events.clientMeasurement, {
-            elapsed: (t1 - t0) / 1000,  // second
             app_info: {
               num_bytes: count
-            }
+            },
+            direction: 'upload',
+            elapsed: (t1 - t0) / 1000,  // second
+            origin: 'client'
           })
           tlast = t1
         }
@@ -154,10 +164,16 @@ const libndt7 = (function () {
       // sets the message and open handlers of |socket|.
       const upload = function (socket) {
         socket.onmessage = function (event) {
-          emit(events.serverMeasurement, JSON.parse(event.data))
+          if (event.data instanceof Blob) {
+            return
+          }
+          let message = JSON.parse(event.data)
+          message.direction = 'upload'
+          message.origin = 'server'
+          emit(events.serverMeasurement, message)
         }
         socket.onopen = function (event) {
-          emit(events.open, null)
+          emit(events.open, socket.url)
           const data = new Uint8Array(1 << 13)
           crypto.getRandomValues(data)
           socket.binarytype = 'arraybuffer'

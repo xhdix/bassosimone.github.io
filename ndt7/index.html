@@ -104,14 +104,62 @@
 
     function UpdateViewWithServerName(data) {
       WithElementIdDo('selected-server', function (elem) {
-        console.log(data)
         data = data.replace(/.measurement-lab.org$/, "")
         data = data.replace(/^ndt-iupui-/, "")
         elem.innerHTML = data
       })
     }
 
+    function ConsoleLogStart(subtest) {
+      console.log(JSON.stringify({
+        key: 'status.measurement_start',
+        value: {subtest: subtest}
+      }))
+    }
+
+    function ConsoleLogOtherEvent(msg, subtest) {
+      if (msg.key === libndt7.events.open) {
+        const url = new URL(msg.value)
+        console.log(JSON.stringify({
+          key: 'status.measurement_begin',
+          value: {
+            server: url.host,
+            subtest: subtest,
+          }
+        }))
+        return
+      }
+      if (msg.key === libndt7.events.error) {
+        console.log(JSON.stringify({
+          key: 'failure.measurement',
+          value: {
+            failure: msg.value,
+            subtest: subtest,
+          }
+        }))
+        return
+      }
+      if (msg.key === libndt7.events.clientMeasurement ||
+          msg.key === libndt7.events.serverMeasurement) {
+        console.log(JSON.stringify({
+          key: 'measurement',
+          value: msg.value,
+        }))
+        return
+      }
+      if (msg.key === libndt7.events.close) {
+        console.log(JSON.stringify({
+          key: 'status.measurement_done',
+          value: {
+            subtest: subtest,
+          }
+        }))
+        return
+      }
+    }
+
     function RunDownload(callback) {
+      ConsoleLogStart('download')
       let worker = new Worker('libndt7-worker.js')
       worker.postMessage({
         key: 'download',
@@ -121,22 +169,23 @@
       })
       worker.onmessage = function (ev) {
         const msg = ev.data
+        ConsoleLogOtherEvent(msg, 'download')
         if (msg.key === libndt7.events.clientMeasurement) {
           UpdateViewWithSpeed('download-speed', msg.value)
         } else if (msg.key === libndt7.events.serverMeasurement) {
           UpdateViewWithDownloadBBRTCPInfo(msg.value)
         } else if (msg.key === libndt7.events.selectedServer) {
           UpdateViewWithServerName(msg.value)
+        } else if (msg.key === libndt7.events.close) {
+          callback()
         } else {
-          console.log('Worker event: ' + msg.key)
-          if (msg.key === libndt7.events.close) {
-            callback()
-          }
+          // NOTHING
         }
       }
     }
 
     function RunUpload() {
+      ConsoleLogStart('upload')
       let worker = new Worker('libndt7-worker.js')
       worker.postMessage({
         key: 'upload',
@@ -146,12 +195,13 @@
       })
       worker.onmessage = function (ev) {
         const msg = ev.data
+        ConsoleLogOtherEvent(msg, 'upload')
         if (msg.key === libndt7.events.clientMeasurement) {
           UpdateViewWithSpeed('upload-speed', msg.value)
         } else if (msg.key === libndt7.events.selectedServer) {
           UpdateViewWithServerName(msg.value)
         } else {
-          console.log('Worker event: ' + msg.key)
+          // NOTHING
         }
       }
     }
