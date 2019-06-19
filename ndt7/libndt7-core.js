@@ -196,25 +196,14 @@ const libndt7 = (function () {
           callback(settings)
           return
         }
-        // Implementation note: using the geo_options policy because in some
-        // sites, e.g. Turin, there is no mlab4. Using a testing mlabns service
-        // that returns us also the mlab4 sites if available. Of course, this
-        // will need to change when m-lab/ndt-server is widely deployed.
-        fetch('https://locate-dot-mlab-staging.appspot.com/ndt_ssl?policy=geo_options')
+        fetch('https://locate.measurementlab.net/ndt7')
           .then(function (response) {
             return response.json()
           })
           .then(function (doc) {
-            for (let i = 0; i < doc.length; ++i) {
-              const fqdn = doc[i].fqdn
-              if (fqdn.indexOf("-mlab4-") !== -1) {
-                settings.hostname = fqdn
-                emit(events.selectedServer, settings.hostname)
-                callback(settings)
-                return
-              }
-            }
-            throw "Cannot find a suitable mlab server"
+            settings.hostname = doc.fqdn
+            emit(events.selectedServer, settings.hostname)
+            callback(settings)
           })
       }
 
