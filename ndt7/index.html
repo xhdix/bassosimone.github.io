@@ -79,7 +79,7 @@
         if (href.match(re)) {
           href = `ndt-iupui-${href}.measurement-lab.org`
         }
-        console.log("server: ${href}")
+        console.log(`server (user-provided): ${href}`)
         callback(href)
       }
       fetch('https://locate.measurementlab.net/ndt7')
@@ -88,7 +88,7 @@
         })
         .then(function (doc) {
           href = doc.fqdn
-          console.log("server: ${href}")
+          console.log(`server (discovered): ${href}`)
           callback(href)
         })
     }
