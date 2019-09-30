@@ -1,14 +1,8 @@
 <!doctype html>
 <html lang='en'>
 <head>
-  <script type='text/javascript' src='libndt7-core.js'></script>
+  <script type='text/javascript' src='ndt7-core.js'></script>
   <style>
-#container{
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-}
 
 .row {
   display: flex;
@@ -17,196 +11,91 @@
   width: 100%;
 }
 
-.column {
-  margin: 7px;
-}
-
 .result {
   position: relative;
   align-items: center;
   justify-content: center;
-  font-size: 200%;
+  font-size: 1000%;
   align: center;
 }
   </style>
   <meta charset='utf-8'>
-  <title>ndt7 network performance test</title>
+  <title>ndt7 Speed Test</title>
 </head>
 <body>
-
-  <div id='container'>
-    <div class='result row'>
-      <span class='column'>Server:</span>
-      <span class='column' id='selected-server'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>Download speed:</span>
-      <span class='column' id='download-speed'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>Max bandwidth:</span>
-      <span class='column' id='max-bandwidth'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>Min RTT:</span>
-      <span class='column' id='min-rtt'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>Smoothed RTT:</span>
-      <span class='column' id='smoothed-rtt'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>RTT variance:</span>
-      <span class='column' id='rtt-var'>N/A</span>
-    </div><div class='result row'>
-      <span class='column'>Upload speed:</span>
-      <span class='column' id='upload-speed'>N/A</span>
-    </div>
+  <div>
+    <div id='download' class='result row'>[Download]</div>
+    <div id='upload' class='result row'>[Upload]</div>
   </div>
-
   <script type='text/javascript'>
     /* jshint esversion: 6, asi: true */
-    /* exported Run */
-    /* globals libndt7 */
+    /* globals ndt7core */
 
-    function MaybeHostname() {
-      const url = new URL(window.location.href)
-      return (url.hash !== '') ? url.hash.substring(1) : ''
-    }
-
-    function WithElementIdDo(elementId, callable) {
+    function withElementDo(elementId, callable) {
       const elem = document.getElementById(elementId)
       if (elem) {
         callable(elem)
       }
     }
 
-    function UpdateViewWithSpeed(elementId, data) {
-      WithElementIdDo(elementId, function (elem) {
-        const speed = 8 * data.app_info.num_bytes / data.elapsed / 1000 / 1000
+    function updateView(elementId, appInfo) {
+      withElementDo(elementId, function (elem) {
+        const elapsed = appInfo.ElapsedTime / 1e06     /* second */
+        let speed = appInfo.NumBytes / elapsed         /* B/s    */
+        speed *= 8                                     /* bit/s  */
+        speed /= 1e06                                  /* Mbit/s */
         elem.innerHTML = speed.toFixed(3) + ' Mbit/s'
       })
     }
 
-    function UpdateViewWithDownloadBBRTCPInfo(data) {
-      WithElementIdDo('max-bandwidth', function (elem) {
-        const value = data.bbr_info.max_bandwidth / 1000 / 1000
-        elem.innerHTML = value.toFixed(3) + ' Mbit/s'
-      })
-      WithElementIdDo('min-rtt', function (elem) {
-        const value = data.bbr_info.min_rtt
-        elem.innerHTML = value.toFixed(3) + ' ms'
-      })
-      WithElementIdDo('smoothed-rtt', function (elem) {
-        const value = data.tcp_info.smoothed_rtt
-        elem.innerHTML = value.toFixed(3) + ' ms'
-      })
-      WithElementIdDo('rtt-var', function (elem) {
-        const value = data.tcp_info.rtt_var
-        elem.innerHTML = value.toFixed(3) + ' ms'
-      })
-    }
-
-    function UpdateViewWithServerName(data) {
-      WithElementIdDo('selected-server', function (elem) {
-        data = data.replace(/.measurement-lab.org$/, "")
-        data = data.replace(/^ndt-iupui-/, "")
-        elem.innerHTML = data
-      })
-    }
-
-    function ConsoleLogStart(subtest) {
-      console.log(JSON.stringify({
-        key: 'status.measurement_start',
-        value: {subtest: subtest}
-      }))
-    }
-
-    function ConsoleLogOtherEvent(msg, subtest) {
-      if (msg.key === libndt7.events.open) {
-        const url = new URL(msg.value)
-        console.log(JSON.stringify({
-          key: 'status.measurement_begin',
-          value: {
-            server: url.host,
-            subtest: subtest,
+    function runSomething(href, testName, callback) {
+      ndt7core.run(href, testName, function(ev, val) {
+        console.log(ev, val)
+        if (ev === 'complete') {
+          if (callback !== undefined) {
+            callback()
           }
-        }))
-        return
-      }
-      if (msg.key === libndt7.events.error) {
-        console.log(JSON.stringify({
-          key: 'failure.measurement',
-          value: {
-            failure: msg.value,
-            subtest: subtest,
-          }
-        }))
-        return
-      }
-      if (msg.key === libndt7.events.clientMeasurement ||
-          msg.key === libndt7.events.serverMeasurement) {
-        console.log(JSON.stringify({
-          key: 'measurement',
-          value: msg.value,
-        }))
-        return
-      }
-      if (msg.key === libndt7.events.close) {
-        console.log(JSON.stringify({
-          key: 'status.measurement_done',
-          value: {
-            subtest: subtest,
-          }
-        }))
-        return
-      }
-    }
-
-    function RunDownload(callback) {
-      ConsoleLogStart('download')
-      let worker = new Worker('libndt7-worker.js')
-      worker.postMessage({
-        key: 'download',
-        value: {
-          hostname: MaybeHostname()
-        },
-      })
-      worker.onmessage = function (ev) {
-        const msg = ev.data
-        ConsoleLogOtherEvent(msg, 'download')
-        if (msg.key === libndt7.events.clientMeasurement) {
-          UpdateViewWithSpeed('download-speed', msg.value)
-        } else if (msg.key === libndt7.events.serverMeasurement) {
-          UpdateViewWithDownloadBBRTCPInfo(msg.value)
-        } else if (msg.key === libndt7.events.selectedServer) {
-          UpdateViewWithServerName(msg.value)
-        } else if (msg.key === libndt7.events.close) {
-          callback()
-        } else {
-          // NOTHING
+          return
         }
-      }
-    }
-
-    function RunUpload() {
-      ConsoleLogStart('upload')
-      let worker = new Worker('libndt7-worker.js')
-      worker.postMessage({
-        key: 'upload',
-        value: {
-          hostname: MaybeHostname()
-        },
-      })
-      worker.onmessage = function (ev) {
-        const msg = ev.data
-        ConsoleLogOtherEvent(msg, 'upload')
-        if (msg.key === libndt7.events.clientMeasurement) {
-          UpdateViewWithSpeed('upload-speed', msg.value)
-        } else if (msg.key === libndt7.events.selectedServer) {
-          UpdateViewWithServerName(msg.value)
-        } else {
-          // NOTHING
+        if (ev === 'measurement' && val.AppInfo !== undefined &&
+            val.Origin === 'client') {
+          updateView(testName, val.AppInfo)
         }
-      }
+      })
     }
 
-    RunDownload(function() { RunUpload(); })
+    function runDownload(href, callback) {
+      runSomething(href, 'download', callback)
+    }
+
+    function runUpload(href, callback) {
+      runSomething(href, 'upload', callback)
+    }
+
+    function discoverHostname(href, callback) {
+      if (href !== '') {
+        // Allow the user to specify a simplified hostname.
+        const re = /^mlab[1-9]{1}-[a-z]{3}[0-9]{2}$/
+        if (href.match(re)) {
+          href = `ndt-iupui-${href}.measurement-lab.org`
+        }
+        console.log("server: ${href}")
+        callback(href)
+      }
+      fetch('https://locate.measurementlab.net/ndt7')
+        .then(function (response) {
+          return response.json()
+        })
+        .then(function (doc) {
+          href = doc.fqdn
+          console.log("server: ${href}")
+          callback(href)
+        })
+    }
+
+    discoverHostname(window.location.hash, function (href) {
+      runDownload(href, function() { runUpload(href); })
+    })
   </script>
 </body>
 </html>
