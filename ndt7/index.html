@@ -72,6 +72,10 @@
       runSomething(href, 'upload', callback)
     }
 
+    function makeURL(domain) {
+      return `https://${domain}`
+    }
+
     function discoverHostname(href, callback) {
       if (href !== '') {
         // Allow the user to specify a simplified hostname.
@@ -80,7 +84,7 @@
           href = `ndt-iupui-${href}.measurement-lab.org`
         }
         console.log(`server (user-provided): ${href}`)
-        callback(href)
+        callback(makeURL(href))
       }
       fetch('https://locate.measurementlab.net/ndt7')
         .then(function (response) {
@@ -89,7 +93,7 @@
         .then(function (doc) {
           href = doc.fqdn
           console.log(`server (discovered): ${href}`)
-          callback(href)
+          callback(makeURL(href))
         })
     }
 
