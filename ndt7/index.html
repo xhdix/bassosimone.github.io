@@ -58,7 +58,7 @@
     function runTest(testName, callback) {
       const url = window.location
       const config = {
-        baseURL: url.origin + url.pathname,
+        //baseURL: url.origin + url.pathname, // to enable mlab-ns
         onstarting: function () {
           console.log(testName + ": starting")
         },
