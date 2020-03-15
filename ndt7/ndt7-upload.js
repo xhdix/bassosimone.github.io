@@ -22,11 +22,11 @@ onmessage = function (ev) {
       sock.close()
       return
     }
-    const maxMessageSize = 16777216 /* = (1<<24) = 16MB */
+    const maxMessageSize = 1<<20
     if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount)/16) {
       data = new Uint8Array(data.length * 2) // TODO(bassosimone): fill this message
     }
-    const underbuffered = data.length/2
+    const underbuffered = 8192
     if (sock.bufferedAmount < underbuffered) {
       sock.send(data)
       total += data.length
