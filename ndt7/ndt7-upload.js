@@ -12,6 +12,9 @@ onmessage = function (ev) {
     closed = true
     postMessage(null)
   }
+  sock.onerror = function (error) {
+    console.log(error)
+  }
   function uploader(socket, data, start, previous, total) {
     if (closed) {
       return // socket.send() with too much buffering causes socket.close()
