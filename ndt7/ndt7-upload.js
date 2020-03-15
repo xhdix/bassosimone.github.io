@@ -22,10 +22,12 @@ onmessage = function (ev) {
       sock.close()
       return
     }
+    /*
     const maxMessageSize = 1<<20
     if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount)/16) {
       data = new Uint8Array(data.length * 2) // TODO(bassosimone): fill this message
     }
+    */
     const underbuffered = 8192
     if (sock.bufferedAmount < underbuffered) {
       sock.send(data)
@@ -48,7 +50,7 @@ onmessage = function (ev) {
       0)
   }
   sock.onopen = function () {
-    const initialMessageSize = 8192 /* (1<<13) */
+    const initialMessageSize = 1<<20 /* (1<<13) */
     const data = new Uint8Array(initialMessageSize) // TODO(bassosimone): fill this message
     sock.binarytype = "arraybuffer"
     const start = new Date().getTime()
