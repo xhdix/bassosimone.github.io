@@ -32,12 +32,12 @@
 
   <div class="row">
     <h2>Results</h2>
-    <table class="table table-bordered table-hover"><tbody>
-      <tr><td>server:</td><td id="server">[server]</td></tr>
-      <tr><td>download:</td><td id="download">[download]</td></tr>
-      <tr><td>upload:</td><td id="upload">[upload]</td></tr>
-      <tr><td>ping:</td><td id="ping">[ping]</td></tr>
-    </tbody></table>
+    <div class="table-responsive"><table class="table table-bordered table-hover"><tbody>
+      <tr><th scope="row" class="w-25">server:</th><td id="server" class="text-monospace">[server]</td></tr>
+      <tr><th scope="row" class="w-25">download:</th><td id="download" class="text-monospace">[download]</td></tr>
+      <tr><th scope="row" class="w-25">upload:</th><td id="upload" class="text-monospace">[upload]</td></tr>
+      <tr><th scope="row" class="w-25">ping:</th><td id="ping" class="text-monospace">[ping]</td></tr>
+    </tbody></table></div>
   </div>
 
   <script type="module">
@@ -60,13 +60,28 @@
       console.log("ndt7: complete")
     }
 
+    function formatSpeedWithUnit(speed) {
+      if (speed < 1e03) {
+        return `${speed.toFixed(2)} bit/s`
+      }
+      speed /= 1e03
+      if (speed < 1e03) {
+        return `${speed.toFixed(2)} kbit/s`
+      }
+      speed /= 1e03
+      if (speed < 1e03) {
+        return `${speed.toFixed(2)} Mbit/s`
+      }
+      speed /= 1e03
+      return `${speed.toFixed(2)} Gbit/s`
+    }
+
     function viewMaybeUpdateSpeed(testName, ev) {
       if (ev.AppInfo !== undefined && ev.Origin === "client") {
         const ai = ev.AppInfo
         let speed = (8 * ai.NumBytes) / (ai.ElapsedTime / 1e06)  // bit/s
-        speed /= 1e06  // Mbit/s
         const elem = document.getElementById(testName)
-        elem.innerHTML = speed.toFixed(2) + " Mb/s"
+        elem.innerHTML = formatSpeedWithUnit(speed)
       }
     }
 
@@ -110,6 +125,7 @@
         baseURL: viewGetBaseURL(),
         oncomplete: viewOnComplete,
         onserverurl: viewSetServer,
+        onstarting: viewOnStarting,
         ontestcomplete: function (ev) {
           console.log("ndt7 test complete", ev)
         },
@@ -121,7 +137,6 @@
         onteststarting: function (ev) {
           console.log("ndt7 test starting", ev)
         },
-        onstarting: viewOnStarting,
         userAcceptedDataPolicy: viewUserAcceptedDataPolicy(),
       }
       try {
