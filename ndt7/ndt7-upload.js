@@ -50,7 +50,7 @@ onmessage = function (ev) {
       0)
   }
   sock.onopen = function () {
-    const initialMessageSize = 1<<20 /* (1<<13) */
+    const initialMessageSize = 1<<8 /* (1<<13) */
     const data = new Uint8Array(initialMessageSize) // TODO(bassosimone): fill this message
     sock.binarytype = "arraybuffer"
     const start = new Date().getTime()
