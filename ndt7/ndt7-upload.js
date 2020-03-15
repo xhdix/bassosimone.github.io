@@ -2,13 +2,13 @@
 // WebWorker that runs the ndt7 upload test
 onmessage = function (ev) {
   "use strict"
-  let url = new URL(ev.data.href)
+  let url = new URL(ev.data.baseURL)
   url.protocol = (url.protocol === "https:") ? "wss:" : "ws:"
   const wsproto = "net.measurementlab.ndt.v7"
   url.pathname = "/ndt/v7/upload"
   const sock = new WebSocket(url.toString(), wsproto)
   sock.onclose = function () {
-    postMessage()
+    postMessage(null)
   }
   function uploader(socket, data, start, previous, total) {
     let now = new Date().getTime()

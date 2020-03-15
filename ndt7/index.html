@@ -7,63 +7,7 @@
 
   <title>ndt7 Speed Test</title>
 
-</head><body>
-
-  <script>
-    /* jshint esversion: 6, asi: true */
-    function runTest(testName, callback) {
-      const url = window.location
-      const config = {
-        //baseURL: url.origin + url.pathname, // to enable mlab-ns
-        onstarting: function () {
-          console.log(testName + ": starting")
-        },
-        onmeasurement: function (ev) {
-          console.log(ev)
-          if (ev.AppInfo !== undefined && ev.Origin === "client") {
-            const ai = ev.AppInfo
-            let speed = (8 * ai.NumBytes) / (ai.ElapsedTime / 1e06)  // bit/s
-            speed /= 1e06  // Mbit/s
-            const elem = document.getElementById(testName)
-            elem.innerHTML = speed.toFixed(2) + " Mb/s"
-          }
-          if (ev.TCPInfo !== undefined && ev.Origin === "server") {
-            if (ev.TCPInfo.MinRTT !== undefined) {
-              const minrtt = ev.TCPInfo.MinRTT / 1e03 // ms
-              const elem = document.getElementById("ping")
-              elem.innerHTML = minrtt.toFixed(1) + " ms"
-            }
-          }
-        },
-        oncomplete: function() {
-          document.getElementById("run").disabled = false
-          console.log(testName + ": complete")
-          if (callback !== undefined) {
-            callback()
-          }
-        },
-        onlocate: function (ev) {
-          document.getElementById("server").innerHTML = ev.fqdn
-        },
-        testName: testName,
-        userAcceptedDataPolicy: document.getElementById("accepted").checked === true,
-      }
-      document.getElementById("run").disabled = true
-      try {
-        ndt7.start(config)
-      } catch (error) {
-        document.getElementById("run").disabled = false
-        alert(error)
-      }
-    }
-    function runBoth() {
-      runTest("download", function () {
-        runTest("upload")
-      })
-    }
-  </script>
-
-<div class="container">
+</head><body><div class="container">
 
   <div class="row">
     <h1>Test Your Speed</h1>
@@ -75,8 +19,11 @@
       I agree to the <a href="https://www.measurementlab.net/privacy/">data
       policy</a>, which includes retention and publication of IP addresses.
     </label>
-    <button type="button" class="btn btn-primary btn-sm" id="run"
-      onclick="runBoth()">Run</button>
+    <button type="button" class="btn btn-primary btn-sm" id="run">Run</button>
+    <div class="spinner-grow spinner-grow-sm" role="status" id="spinner"
+         style="visibility: hidden">
+      <span class="sr-only">Running...</span>
+    </div>
     </form>
     <p>For more on M-Lab's data collection and measurement, including the
       disclosure of IP addresses, see our
@@ -86,12 +33,99 @@
   <div class="row">
     <h2>Results</h2>
     <table class="table table-bordered table-hover"><tbody>
-      <tr><td>server:</td><td id="server">[N/A]</td></tr>
+      <tr><td>server:</td><td id="server">[server]</td></tr>
       <tr><td>download:</td><td id="download">[download]</td></tr>
       <tr><td>upload:</td><td id="upload">[upload]</td></tr>
       <tr><td>ping:</td><td id="ping">[ping]</td></tr>
     </tbody></table>
   </div>
+
+  <script type="module">
+    /* jshint esversion: 6, asi: true */
+    import {start} from "./ndt7-core.js"
+
+    function viewOnStarting() {
+      document.getElementById("run").disabled = true
+      document.getElementById("spinner").style.visibility = "visible"
+      document.getElementById("server").innerHTML = "[server]"
+      document.getElementById("download").innerHTML = "[download]"
+      document.getElementById("upload").innerHTML = "[upload]"
+      document.getElementById("ping").innerHTML = "[ping]"
+      console.log("ndt7: starting")
+    }
+
+    function viewOnComplete() {
+      document.getElementById("run").disabled = false
+      document.getElementById("spinner").style.visibility = "hidden"
+      console.log("ndt7: complete")
+    }
+
+    function viewMaybeUpdateSpeed(testName, ev) {
+      if (ev.AppInfo !== undefined && ev.Origin === "client") {
+        const ai = ev.AppInfo
+        let speed = (8 * ai.NumBytes) / (ai.ElapsedTime / 1e06)  // bit/s
+        speed /= 1e06  // Mbit/s
+        const elem = document.getElementById(testName)
+        elem.innerHTML = speed.toFixed(2) + " Mb/s"
+      }
+    }
+
+    function viewMaybeUpdateMinRTT(ev) {
+      if (ev.TCPInfo !== undefined && ev.Origin === "server") {
+        if (ev.TCPInfo.MinRTT !== undefined) {
+          const minrtt = ev.TCPInfo.MinRTT / 1e03 // ms
+          const elem = document.getElementById("ping")
+          elem.innerHTML = minrtt.toFixed(1) + " ms"
+        }
+      }
+    }
+
+    function viewGetBaseURL() {
+      const url = window.location
+      // This code allows the user to specify a server using the fragment
+      const podspec = /^#mlab[1-9]{1}-[a-z]{3}[0-9]{2}$/
+      if (url.hash.match(podspec)) {
+        let pod = url.hash.substring(1)
+        return `https://ndt-iupui-${pod}.measurement-lab.org/`
+      }
+      // As a special case, when running from local host we assume we can run ndt7
+      // with it, as happens for bassosimone/ndt7-server-go-minimal
+      if (url.hostname === "127.0.0.1" || url.hostname === "[::1]") {
+        return url.origin + url.pathname
+      }
+      // Otherwise, we use locate.measurementlab.net
+      return ""
+    }
+
+    function viewSetServer(url) {
+      document.getElementById("server").innerHTML = url
+    }
+
+    function viewUserAcceptedDataPolicy() {
+      return document.getElementById("accepted").checked === true
+    }
+
+    document.getElementById("run").addEventListener("click", function () {
+      start({
+        baseURL: viewGetBaseURL(),
+        oncomplete: viewOnComplete,
+        onserverurl: viewSetServer,
+        ontestcomplete: function (ev) {
+          console.log("ndt7 test complete", ev)
+        },
+        ontestmeasurement: function (ev) {
+          viewMaybeUpdateSpeed(ev.Test, ev)
+          viewMaybeUpdateMinRTT(ev)
+          console.log(ev)
+        },
+        onteststarting: function (ev) {
+          console.log("ndt7 test starting", ev)
+        },
+        onstarting: viewOnStarting,
+        userAcceptedDataPolicy: viewUserAcceptedDataPolicy(),
+      })
+    })
+  </script>
 
   <div class="row">
     <h2>About</h2>
@@ -102,10 +136,9 @@
       verifiable measurement of global network performance.</p>
   </div>
 
-</div>
   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-  <script src="ndt7-core.js"></script>
+  <script src="ndt7-core.js" type="module"></script>
 
-</body></html>
+</div></body></html>

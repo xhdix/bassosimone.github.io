@@ -2,12 +2,12 @@
 // WebWorker that runs the ndt7 download test
 onmessage = function (ev) {
   "use strict"
-  let url = new URL(ev.data.href)
+  let url = new URL(ev.data.baseURL)
   url.protocol = (url.protocol === "https:") ? "wss:" : "ws:"
   url.pathname = "/ndt/v7/download"
   const sock = new WebSocket(url.toString(), "net.measurementlab.ndt.v7")
   sock.onclose = function () {
-    postMessage()
+    postMessage(null)
   }
   sock.onopen = function () {
     const start = new Date().getTime()
