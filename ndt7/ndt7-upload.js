@@ -26,7 +26,7 @@ onmessage = function (ev) {
     if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount)/16) {
       data = new Uint8Array(data.length * 2) // TODO(bassosimone): fill this message
     }
-    const underbuffered = 7 * data.length
+    const underbuffered = data.length/2
     if (sock.bufferedAmount < underbuffered) {
       sock.send(data)
       total += data.length
