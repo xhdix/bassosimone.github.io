@@ -12,9 +12,6 @@ onmessage = function (ev) {
     closed = true
     postMessage(null)
   }
-  sock.onerror = function (error) {
-    console.log(error)
-  }
   function uploader(socket, data, start, previous, total) {
     if (closed) {
       return // socket.send() with too much buffering causes socket.close()
@@ -25,13 +22,11 @@ onmessage = function (ev) {
       sock.close()
       return
     }
-    /*
-    const maxMessageSize = 1<<20
+    const maxMessageSize = 16777216 /* = (1<<24) = 16MB */
     if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount)/16) {
       data = new Uint8Array(data.length * 2) // TODO(bassosimone): fill this message
     }
-    */
-    const underbuffered = 8192
+    const underbuffered = 7 * data.length
     if (sock.bufferedAmount < underbuffered) {
       sock.send(data)
       total += data.length
@@ -53,7 +48,7 @@ onmessage = function (ev) {
       0)
   }
   sock.onopen = function () {
-    const initialMessageSize = 1<<17 /* (1<<13) */
+    const initialMessageSize = 8192 /* (1<<13) */
     const data = new Uint8Array(initialMessageSize) // TODO(bassosimone): fill this message
     sock.binarytype = "arraybuffer"
     const start = new Date().getTime()
