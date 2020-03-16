@@ -48,6 +48,11 @@
 
     <div class="row">
       <h2>Results</h2>
+    </div>
+    <div class="progress" style="height: 4px; margin-bottom: 7px;">
+      <div class="progress-bar progress-bar-striped progress-bar-animated" id="progress" role="progressbar"></div>
+    </div>
+    <div class="row">
       <div class="table-responsive">
         <table class="table table-sm table-bordered table-hover">
           <tbody>
@@ -79,6 +84,8 @@
       "use strict"
       let currentMeasurement = {}
       let measurementID = 0
+      let timer = null
+      let timerProgress = 0
 
       function viewOnStarting() {
         document.getElementById("accepted").disabled = true
@@ -91,6 +98,12 @@
         document.getElementById("download").innerHTML = "[download]"
         document.getElementById("upload").innerHTML = "[upload]"
         document.getElementById("ping").innerHTML = "[ping]"
+        document.getElementById("progress").style.width = "0%"
+        timerProgress = 0
+        timer = setInterval(function () {
+          timerProgress += 1
+          document.getElementById("progress").style.width = timerProgress + "%"
+        }, 250)
         console.log("ndt: starting")
       }
 
@@ -101,6 +114,11 @@
         document.getElementById("nolocate").disabled = false
         document.getElementById("ndt5").disabled = false
         document.getElementById("spinner").style.visibility = "hidden"
+        if (timer !== null) {
+          document.getElementById("progress").style.width = "100%"
+          clearInterval(timer)
+          timer = null
+        }
         console.log("ndt: complete")
       }
 
