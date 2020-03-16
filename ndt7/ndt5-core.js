@@ -44,6 +44,25 @@ const ndt5core = (function () {
           })
         }
         break
+      case "onstatechange":
+        if (msg.state === "finished_s2c" && config.ontestmeasurement !== undefined) {
+          const prefix = "TCPInfo."
+          let ti = {
+            ElapsedTime: msg.results.s2cElapsed * 1e06, /* s => us */
+          }
+          for (let [key, value] of Object.entries(msg.results)) {
+            if (key.startsWith(prefix)) {
+              key = key.substr(prefix.length)
+              ti[key] = Number(value)
+            }
+          }
+          config.ontestmeasurement({
+            Origin: "server",
+            TCPInfo: ti,
+            Test: "download"
+          })
+        }
+        break
       case "onfinish":
         if (config.oncomplete !== undefined) {
           config.oncomplete()
