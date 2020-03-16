@@ -75,8 +75,8 @@ const ndt5core = (function () {
     worker.postMessage({
       cmd: "start",
       hostname: parsed.hostname,
-      port: 3001,
-      protocol: "ws",
+      port: 3010,
+      protocol: "wss",
       path: "/ndt_protocol",
       update_interval: 250,
     })
