@@ -30,44 +30,44 @@ const ndt5core = (function () {
     worker.onmessage = function (ev) {
       let msg = ev.data;
       switch (msg.cmd) {
-      case "onprogress":
-        if (config.ontestmeasurement !== undefined) {
-          config.ontestmeasurement({
-            AppInfo: {
-              ElapsedTime: 1000 * 1000 * ((msg.state === "interval_c2s") ?
-                msg.results.c2sElapsed : msg.results.s2cElapsed),
-              NumBytes: ((msg.state === "interval_c2s") ?
-                msg.results.c2sTotal : msg.results.s2cTotal),
-            },
-            Origin: "client",
-            Test: (msg.state === "interval_c2s") ? "upload" : "download"
-          })
-        }
-        break
-      case "onstatechange":
-        if (msg.state === "finished_s2c" && config.ontestmeasurement !== undefined) {
-          const prefix = "TCPInfo."
-          let ti = {
-            ElapsedTime: msg.results.s2cElapsed * 1e06, /* s => us */
+        case "onprogress":
+          if (config.ontestmeasurement !== undefined) {
+            config.ontestmeasurement({
+              AppInfo: {
+                ElapsedTime: 1000 * 1000 * ((msg.state === "interval_c2s") ?
+                  msg.results.c2sElapsed : msg.results.s2cElapsed),
+                NumBytes: ((msg.state === "interval_c2s") ?
+                  msg.results.c2sTotal : msg.results.s2cTotal),
+              },
+              Origin: "client",
+              Test: (msg.state === "interval_c2s") ? "upload" : "download"
+            })
           }
-          for (let [key, value] of Object.entries(msg.results)) {
-            if (key.startsWith(prefix)) {
-              key = key.substr(prefix.length)
-              ti[key] = Number(value)
+          break
+        case "onstatechange":
+          if (msg.state === "finished_s2c" && config.ontestmeasurement !== undefined) {
+            const prefix = "TCPInfo."
+            let ti = {
+              ElapsedTime: msg.results.s2cElapsed * 1e06, /* s => us */
             }
+            for (let [key, value] of Object.entries(msg.results)) {
+              if (key.startsWith(prefix)) {
+                key = key.substr(prefix.length)
+                ti[key] = Number(value)
+              }
+            }
+            config.ontestmeasurement({
+              Origin: "server",
+              TCPInfo: ti,
+              Test: "download"
+            })
           }
-          config.ontestmeasurement({
-            Origin: "server",
-            TCPInfo: ti,
-            Test: "download"
-          })
-        }
-        break
-      case "onfinish":
-        if (config.oncomplete !== undefined) {
-          config.oncomplete()
-        }
-        break
+          break
+        case "onfinish":
+          if (config.oncomplete !== undefined) {
+            config.oncomplete()
+          }
+          break
       }
       console.log(msg)
     }
