@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
     integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-  <title>ndt7 Speed Test</title>
+  <title>Internet Speed Test</title>
 
 </head>
 
@@ -17,7 +17,10 @@
     <div class="row">
       <h1>Test Your Speed</h1>
       <p>M-Lab's Speed Test provides advanced diagnostics of the performance
-        of your broadband connection through quick measurements.</p>
+        of your broadband connection through quick measurements <a href="#">with
+        the current server</a> (the default) or <a href="#locate">with a nearby
+        server</a>. (You can also <input type="checkbox" id="ndt5"> use the
+        legacy ndt5 protocol.)</p>
       <form>
         <label>
           <input type="checkbox" id="accepted">
@@ -123,6 +126,10 @@
 
       function viewGetBaseURL() {
         const url = window.location
+        // Use locate.measurementlab.net when explicitly asked to
+        if (url.hash === "#locate") {
+          return ""
+        }
         // This code allows the user to specify a server using the fragment
         const podspec = /^#mlab[1-9]{1}-[a-z]{3}[0-9]{2}$/
         if (url.hash.match(podspec)) {
@@ -144,6 +151,10 @@
 
       function viewUserAcceptedDataPolicy() {
         return document.getElementById("accepted").checked === true
+      }
+
+      function ndtcore() {
+        return (document.getElementById("ndt5").checked === true) ? ndt5core : ndt7core
       }
 
       document.getElementById("run").addEventListener("click", function () {
@@ -172,7 +183,7 @@
           userAcceptedDataPolicy: viewUserAcceptedDataPolicy(),
         }
         try {
-          ndt7core.start(config)
+          ndtcore().start(config)
         } catch (error) {
           alert(error)
           viewOnComplete()
@@ -212,6 +223,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
       integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
       crossorigin="anonymous"></script>
+    <script src="./ndt5-core.js"></script>
     <script src="./ndt7-core.js"></script>
     <script src="./ndt7-extra.js"></script>
 
