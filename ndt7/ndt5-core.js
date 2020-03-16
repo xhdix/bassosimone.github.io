@@ -26,7 +26,7 @@ const ndt5core = (function () {
   }
 
   function startWorker(config, url) {
-    let worker = new Worker("ndt5-worker.js")
+    let worker = new Worker("ndt-wrapper-ww.js")
     worker.onmessage = function (ev) {
       let msg = ev.data;
       switch (msg.cmd) {

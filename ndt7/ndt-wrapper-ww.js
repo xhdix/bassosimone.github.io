@@ -1,8 +1,6 @@
 /* This is an NDT client, written in javascript.  It speaks the websocket
  * version of the NDT protocol.  The NDT protocol is documented at:
  * https://code.google.com/p/ndt/wiki/NDTProtocol
- *
- * Source: https://raw.githubusercontent.com/m-lab/mlab-speedtest/8e81856f0a9c210ad5ae55a2ce8c8a30ad7162a8/app/assets/js/ndt-wrapper-ww.js
  */
 
 /*jslint bitwise: true, browser: true, nomen: true, vars: true */
@@ -10,7 +8,7 @@
 
 'use strict';
 
-importScripts('ndt5-ndtjs.js');
+importScripts('ndt-browser-client.js');
 
 self.addEventListener('message', function (e) {
   var msg = e.data;
