@@ -11,7 +11,7 @@ const ndt5core = (function () {
       return
     }
     if (config.url === undefined || config.url === "") {
-      config.url = "https://locate.measurementlab.net/ndt7"
+      config.url = "https://locate.measurementlab.net/ndt_ssl"
     }
     fetch(config.url)
       .then(function (response) {
