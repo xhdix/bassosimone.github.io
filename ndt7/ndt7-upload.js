@@ -23,7 +23,7 @@ onmessage = function (ev) {
       return
     }
     const maxMessageSize = 16777216 /* = (1<<24) = 16MB */
-    if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount)/16) {
+    if (data.length < maxMessageSize && data.length < (total - sock.bufferedAmount) / 16) {
       data = new Uint8Array(data.length * 2) // TODO(bassosimone): fill this message
     }
     const underbuffered = 7 * data.length
@@ -44,7 +44,7 @@ onmessage = function (ev) {
       previous = now
     }
     setTimeout(
-      function() { uploader(sock, data, start, previous, total) },
+      function () { uploader(sock, data, start, previous, total) },
       0)
   }
   sock.onopen = function () {
