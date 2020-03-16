@@ -19,7 +19,7 @@ const ndt7extra = (function () {
 
   // newMeasurement returns an object that saves the result using
   // (a subset of) the OONI data format for ndt7.
-  function newMeasurement() {
+  function newMeasurement(testName) {
     const startTime = new Date()
     const startTimeString = formatDate(startTime)
     let measurement = {
@@ -39,7 +39,7 @@ const ndt7extra = (function () {
       software_version: "0.1.0-dev",
       test_keys: null,
       test_runtime: null,
-      test_name: "ndt7",
+      test_name: testName,
       test_start_time: startTimeString,
       test_version: "0.1.0"
     }

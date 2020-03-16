@@ -17,10 +17,7 @@
     <div class="row">
       <h1>Test Your Speed</h1>
       <p>M-Lab's Speed Test provides advanced diagnostics of the performance
-        of your broadband connection through quick measurements <a href="#">with
-        the current server</a> (the default) or <a href="#locate">with a nearby
-        server</a>. (You can also <input type="checkbox" id="ndt5"> use the
-        legacy ndt5 protocol.)</p>
+        of your broadband connection through quick measurements.</p>
       <form>
         <label>
           <input type="checkbox" id="accepted">
@@ -35,6 +32,18 @@
       <p>For more on M-Lab's data collection and measurement, including the
         disclosure of IP addresses, see our
         <a href="https://www.measurementlab.net/privacy/">Privacy Policy</a>.</p>
+    </div>
+
+    <div class="row">
+      <h2>Feature flags</h2>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="ndt5">
+        Use the legacy ndt5 protocol rather than the new ndt7 protocol.</label>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="nolocate">
+        Use this server rather than a nearby M-Lab server.</label>
     </div>
 
     <div class="row">
@@ -72,21 +81,27 @@
       let measurementID = 0
 
       function viewOnStarting() {
+        document.getElementById("accepted").disabled = true
         document.getElementById("run").disabled = true
         document.getElementById("export").disabled = true
+        document.getElementById("nolocate").disabled = true
+        document.getElementById("ndt5").disabled = true
         document.getElementById("spinner").style.visibility = "visible"
         document.getElementById("server").innerHTML = "[server]"
         document.getElementById("download").innerHTML = "[download]"
         document.getElementById("upload").innerHTML = "[upload]"
         document.getElementById("ping").innerHTML = "[ping]"
-        console.log("ndt7: starting")
+        console.log("ndt: starting")
       }
 
       function viewOnComplete() {
+        document.getElementById("accepted").disabled = false
         document.getElementById("run").disabled = false
         document.getElementById("export").disabled = false
+        document.getElementById("nolocate").disabled = false
+        document.getElementById("ndt5").disabled = false
         document.getElementById("spinner").style.visibility = "hidden"
-        console.log("ndt7: complete")
+        console.log("ndt: complete")
       }
 
       function formatSpeedWithUnit(speed) {
@@ -127,7 +142,7 @@
       function viewGetBaseURL() {
         const url = window.location
         // Use locate.measurementlab.net when explicitly asked to
-        if (url.hash === "#locate") {
+        if (url.hash === "#locate" || viewUseLocate()) {
           return ""
         }
         // This code allows the user to specify a server using the fragment
@@ -153,12 +168,20 @@
         return document.getElementById("accepted").checked === true
       }
 
+      function viewIsNDT5() {
+        return document.getElementById("ndt5").checked === true
+      }
+
+      function viewUseLocate() {
+        return document.getElementById("nolocate").checked === false
+      }
+
       function ndtcore() {
-        return (document.getElementById("ndt5").checked === true) ? ndt5core : ndt7core
+        return (viewIsNDT5()) ? ndt5core : ndt7core
       }
 
       document.getElementById("run").addEventListener("click", function () {
-        let measurement = ndt7extra.newMeasurement()
+        let measurement = ndt7extra.newMeasurement((viewIsNDT5()) ? "ndt5" : "ndt7")
         const config = {
           baseURL: viewGetBaseURL(),
           oncomplete: function () {
@@ -169,7 +192,7 @@
           onserverurl: viewSetServer,
           onstarting: viewOnStarting,
           ontestcomplete: function (ev) {
-            console.log("ndt7 test complete", ev)
+            console.log("ndt test complete", ev)
           },
           ontestmeasurement: function (ev) {
             viewMaybeUpdateSpeed(ev.Test, ev)
@@ -178,7 +201,7 @@
             measurement.update(ev)
           },
           onteststarting: function (ev) {
-            console.log("ndt7 test starting", ev)
+            console.log("ndt test starting", ev)
           },
           userAcceptedDataPolicy: viewUserAcceptedDataPolicy(),
         }
